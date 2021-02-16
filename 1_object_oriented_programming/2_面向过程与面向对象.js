@@ -37,7 +37,7 @@ Book.prototype = {
   // 公有方法
   display: function() {}
 }
-// 通过 new 关键字创建的对象实质是对新对象 this的不断赋值并将prototype 指向类的prototype所指向的对象
+// new 关键字创建的对象实质是对新对象this的不断赋值 并将prototype指向类的prototype所指向的对象
 // 类构造函数外面通过点语法定义的属性方法是不会添加到新创建的对象上去的
 console.log(Book.isChinese);
 Book.restTime();
@@ -197,9 +197,240 @@ console.log(instance1.id) // 11
 
 instance1.showBooks() // TypeError
 // SuperClass.call(this, id); 构造函数式继承的精华
-// 由于call 方法可以改变函数的作用环境, 在子类中对 SuperClass 调用这个方法就是将子类中的变量在父类中执行一遍
+// 由于call 方法可以改变函数的作用环境, 在子类中对 SuperClass调用这个方法 就是将子类中的变量在父类中执行一遍
 // 由于父类中是给 this 绑定属性的 因此子类自然也就继承了父类的共有属性 由于这种类型继承没有设计原型 prototype
-// 所以父类的原型方法自然不会被子类继承, 而如果想要被子类继承就必须要放在构造函数中 这样创建出来的 每个实例都会单独拥有一份而不能公用
+// 所以父类的原型方法自然不会被子类继承, 而如果想要被子类继承就必须要放在构造函数中 这样创建出来的
+// 每个实例都会单独拥有一份而不能公用
 // 这样就违背了代码复用的原则, 为了综合两点就有了 组合式继承
 
 // 优点为我所用 - 组合继承
+function SuperClass(name) {
+  this.books = ['JavaScript', 'HTML', 'CSS'];
+  this.name = name
+}
+
+SuperClass.prototype.getName = function() {
+  console.log(this.name)
+}
+
+function SubClass(name, time) {
+  // 构造函数式继承父类 name 属性
+  SuperClass.call(this, name);
+  // 子类中新增共有属性
+  this.time = time;
+}
+// 类式继承 子类原型继承父类
+SubClass.prototype = new SuperClass();
+// 子类原型方法
+Subclass.prototype.getTime = function() {
+  console.log(this.time);
+}
+// 在子类的构造函数中继承父类构造函数 在子类的原型上实例化父类就是组合式继承
+// 缺点: 多次调用 在使用构造函数时执行了一遍父类的构造函数 子类原型的类式继承又调用了一遍父类构造函数
+
+// 原型式继承
+// 道格拉斯.克罗福 <JavaScript 中原型式继承> 借助原型的prototype 可以根据已有的对象创建一个新的对象 同时不必创建自定义对象
+
+function inheritBoject(o) {
+  // 声明一个过渡函数对象
+  function F() {}
+  F.prototype = o;
+  return new F();
+}
+
+var book = {
+  name: 'JavaScript',
+  alikeBook: ['css', 'html']
+}
+
+var newBook = inheritBoject(book);
+newBook.name = 'ajax';
+newBook.alikeBook.push('?')
+
+// 如虎添翼 - 寄生式继承
+// 生命基对象
+var book = {
+  name: 'ja book',
+  alikeBook: ['css book', 'html book']
+}
+
+function createBook() {
+  // 通过原型继承方式创建新对象
+  var o = new inheritBoject(obj);
+  // 拓展新对象
+  o.getName = function() {
+    console.log(name);
+  }
+  // 返回拓展后的新对象
+  return o;
+}
+// 对原型继承的二次封装
+
+// 终极继承者 - 寄生组合式继承
+function inheriPrototype(subClass, superClass) {
+  // 复制一份父类的原型保存在变量中
+  var p = inheritBoject(superClass.prototype);
+  // 修正因为重写子类原型导致子类的 constructor 属性被修改
+  p.constructor = subClass;
+  // 设置子类的原型
+  subClass.prototype = p;
+}
+
+// 测试用例
+function SuperClass(name) {
+  this.name = name;
+  this.colors = ['green', 'red', 'blue'];
+}
+SuperClass.prototype.getName = function() {
+  console.log(this.name);
+}
+
+function SubClass(name, time) {
+  // 构造函数式继承
+  SuperClass.call(this, name);
+  // 子类新增属性
+  this.tiem = time;
+}
+// 寄生式继承 父类原型
+inheriPrototype(SubClass, SuperClass);
+// 子类新增原型方法
+SubClass.prototype.getTime = function() {
+  console.log(this.time)
+}
+let instance1 = new SubClass('js book', 2014);
+let instance2 = new SubClass('css book', 2013);
+instance1.colors.push('black');
+instance2.colors.push('yellow');
+instance2.getName();
+instance2.getTime();
+
+// 多继承
+// JavaScript中继承是依赖于原型 prototype 链实现的 只有一条原型链 通过技巧方法 可以继承多个对象的属性实现类似的多继承
+// 单继承
+const extend = function(target, source) {
+  // 遍历源对象属性
+  for (const prototype in source) {
+    // 将源对象属性复制到目标对象中
+    target[prototype] = source[prototype];
+  }
+  // 返回目标对象
+  return target;
+}
+// extend 方法是对 对象中属性的一个复制过程
+
+let book = {
+  name: 'JS Book',
+  alikeBook: ['js', 'html', 'css']
+}
+
+let anotherBook = {
+  color: 'red'
+}
+
+extend(anotherBook, book);
+
+// 多继承 复制属性
+const mix = function() {
+  let i = 1,                  // 从第二个参数起被为被继承的对象
+      len = arguments.length,
+      target = arguments[0],
+      arg;                    // 缓存参数对象
+
+    // 遍历被继承的对象
+    for(; i < len; i++) {
+      // 缓存当前属性
+      arg = arguments[i];
+      // 遍历被继承对象的属性
+      for (const prototype in arg) {
+        // 将被继承对象的属性复制到目标对象
+        target[prototype]  = arg[prototype]
+      }
+    }
+    // 返回目标对象
+    return target;
+}
+// 将传入的多个对象的属性复制到源对象中 即可实现对多个对象的属性继承
+// 缺点: 使用时需要传入目标对象(参数一需要继承的对象)
+
+// 绑定到原生对象Object上
+Object.prototype.mix = function() {
+  var i = 0,
+      len = arguments.length,
+      arg;
+
+  // 遍历被继承的对象
+  for(; i < len; i++) {
+    // 缓存当前对象
+    arg = arguments[i];
+    // 遍历被继承对象中的属性
+    for (const prototype in arg) {
+      this[prototype] = arg[prototype]
+    }
+  }
+}
+
+// 多态 - 多种调用方式
+function add() {
+  // 获取参数
+  let arg = arguments,
+  len = arguments.length;
+  switch(len) {
+    // 如果没有参数
+    case 0:
+      return 10;
+    // 如果有一个参数
+    case 1:
+      return 10 + arg[0];
+    case 2:
+      return arg[0] + arg[1]
+  }
+}
+
+// 另一种写法
+function Add() {
+  // 无参数算法
+  function zero() {
+    return 10;
+  }
+  // 一个参数算法
+  function one(num) {
+    return 10 + num;
+  }
+  // 两个参数算法
+  function two(num1, num2) {
+    return num1 + num2;
+  }
+  // 相加共有方法
+  this.add = function() {
+    let arg = arguments,
+        len = arguments.length;
+    switch(len) {
+      // 无参
+      case 0:
+        return zero();
+      case 1:
+        return one(arg[0]);
+      case 2:
+        return two(arg[0], arg[1]);
+    }
+  }
+}
+
+let A = new Add();
+console.log(A.add());
+console.log(A.add(5));
+console.log(A.add(5, 7));
+
+// 多继承中通过对对象的属性与方法 浅复制实现继承 如何实现深复制?
+// 在深复制中把对象的引用类型属性细化成值类型 拷贝到目标对象中
+function keepCloning(objectpassed) {
+  if (objectpassed === null || typeof objectpassed !== 'object') {
+     return objectpassed;
+  }
+  // 递归
+  var temporary_storage = objectpassed.constructor(); // {}
+  for (const key in objectpassed) {
+    temporary_storage[key] = keepCloning(objectpassed[key]);
+  }
+  return temporary_storage;
+}
